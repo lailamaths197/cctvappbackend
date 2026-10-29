@@ -330,10 +330,9 @@ def _evidence_kind_for_completion(booking):
 
 
 class TechnicianAddExtraServiceView(APIView):
-    """Technician appends an out-of-scope/extra service to an active job from the field.
-    
-    Expects multipart/form-data: `extra_title`, `extra_description`, `extra_charge`
-    along with repeated `extra_before_images` files.
+    """
+    POST /api/bookings/<id>/add-extra/
+    Technician appends an out-of-scope/extra service to an active job from the field.
     """
     permission_classes = [IsTechnician]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
@@ -342,25 +341,34 @@ class TechnicianAddExtraServiceView(APIView):
         booking = get_object_or_404(Booking, pk=pk, technician=request.user)
 
         if booking.status == Booking.Status.COMPLETED:
-            raise ValidationError("Cannot amend a historically completed service ticket.")
+            return Response({"detail": "Cannot amend a historically completed service ticket."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 🔴 CHANGE 1: Enforce mandatory BEFORE photos taken from app camera/gallery
-        uploaded_photos = request.FILES.getlist('extra_before_images')
+        # 🟢 FIX 1: Flexible Multi-Part File Array Handling
+        # Look for 'extra_before_images' or fall back to 'images' key variations
+        uploaded_photos = request.FILES.getlist('extra_before_images') or request.FILES.getlist('images')
         if not uploaded_photos:
             return Response(
                 {"extra_before_images": "You must capture or select at least one 'before' photo proof."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        extra_charge_str = request.data.get('extra_charge', '0.00')
+        # 🟢 FIX 2: Flexible Data Keys Fallbacks
+        extra_title = request.data.get('extra_title', request.data.get('title', request.data.get('extra_service_title', ''))).strip()
+        extra_desc = request.data.get('extra_description', request.data.get('description', request.data.get('extra_service_description', ''))).strip()
+        
+        extra_charge_str = request.data.get('extra_charge', request.data.get('extra_service_charge', '0.00'))
+        
         try:
-            extra_charge = Decimal(extra_charge_str)
-        except (ValueError, TypeError):
-            raise ValidationError({"extra_charge": "Provide a valid numeric decimal charge."})
+            extra_charge = Decimal(str(extra_charge_str))
+        except (ValueError, TypeError, InvalidOperation):
+            return Response({"extra_charge": "Provide a valid numeric decimal charge."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not extra_title:
+            return Response({"extra_title": "An extra service title task description is required."}, status=status.HTTP_400_BAD_REQUEST)
 
         with transaction.atomic():
-            booking.extra_service_title = request.data.get('title', request.data.get('extra_title', '')).strip()
-            booking.extra_service_description = request.data.get('description', request.data.get('extra_description', '')).strip()
+            booking.extra_service_title = extra_title
+            booking.extra_service_description = extra_desc
             booking.extra_service_charge = extra_charge
             booking.technician_incentive = extra_charge * Decimal('0.15')
             
