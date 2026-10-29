@@ -62,14 +62,11 @@ IF_RENDER = os.getenv("RENDER", "False") == "True"
 
 if os.getenv("DB_ENGINE") == "postgres":
     DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": os.getenv("DB_NAME", "cctv_booking"),
-            "USER": os.getenv("DB_USER", "postgres"),
-            "PASSWORD": os.getenv("DB_PASSWORD", ""),
-            "HOST": os.getenv("DB_HOST", "localhost"),
-            "PORT": os.getenv("DB_PORT", "5432"),
-        }
+        "default": dj_database_url.config(
+            default=os.getenv("DATABASE_URL"),
+            conn_max_age=600,  # Keeps connections alive for better performance
+            ssl_require=True   # Enforces encryption parameters for security
+        )
     }
 elif IF_RENDER:
     # 🟢 PRODUCTION SQLITE PERSISTENT DISK BRIDGE ON RENDER
