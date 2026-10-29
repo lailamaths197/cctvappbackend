@@ -29,3 +29,4 @@ tzdata==2026.2
 urllib3==2.7.0
 whitenoise==6.12.0
 python-dotenv
+twilio==9.4.0
