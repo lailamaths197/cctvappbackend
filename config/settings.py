@@ -126,6 +126,16 @@ SIMPLE_JWT = {
 }
 
 CORS_ALLOW_ALL_ORIGINS = DEBUG  # lock this down in production
+# 🛑 Replace your old CORS line with this block:
+if DEBUG:
+    CORS_ALLOW_ALL_ORIGINS = True
+else:
+    CORS_ALLOW_ALL_ORIGINS = False
+    # 🟢 ALLOW LOCAL WEB PLATFORMS AND EMULATORS TO CONNECT TO PRODUCTION
+    CORS_ALLOWED_ORIGINS = [
+        "http://localhost:8081",
+        "http://127.0.0.1:8081",
+    ]
 
 # --- Razorpay ----------------------------------------------------------------
 RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID", "")
