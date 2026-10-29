@@ -73,13 +73,14 @@ if os.getenv("DB_ENGINE") == "postgres":
     }
 elif IF_RENDER:
     # 🟢 PRODUCTION SQLITE PERSISTENT DISK BRIDGE ON RENDER
-    # Forces data to reside in the persistent attached volume mount path directory mount
+    # Point directly to your workspace data subdirectory volume mount
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
-            "NAME": "/var/data/db.sqlite3",
+            "NAME": "/opt/render/project/src/data/db.sqlite3",
         }
     }
+
 else:
     # Standard local offline storage fallback tracking path loop
     DATABASES = {
